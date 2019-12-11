@@ -1,0 +1,71 @@
+
+
+  Undojs.js - integration tests
+    √ recordBatch stores batch info for sync function calls
+    √ recordBatch stores batch info for async function calls
+    √ recordBatch stores batch info for consecutive mixed asnyc/sync function calls
+    √ recordBatch only stores those mixed async/sync batch members that are uninterrupted on the callstack
+    √ recordBatch stores batch info for consecutive batch calls
+    √ undo calls all commands' undo functions if part of a batch
+    √ undo calls undo functions in order of commands' order of return - not order of commands' call
+    √ undo calls async undo functions sequentially 
+
+  Undojs.js
+    √ register adds command to list
+    √ register adds command name to list
+    √ register defaults to null for context and cache
+    √ register throws if mandatory parameters not provided.
+    √ register throws if execute, undo or cache not of type function
+    √ register throws if duplicate name for command.
+    √ recordBatch creates new empty batch
+    √ recordBatch returns return values of parameter
+    √ recordBatch throws if parameter not an array
+    √ execute calls the command by name with provided params-array
+    √ execute allows to pass a single, non-array parameter w/o wrapping it in an array
+    √ execute calls the command with an array as the parameter correctly
+    √ execute stores the call's parameter/s, return val [and cache value].
+    √ execute calls the command's cache function with the call's parameter/s
+    √ execute calls cache function before execute function
+    √ execute uses the context provided during register
+    √ execute uses/prioritises the context provided as parameter
+    √ execute throws if called from within undo
+    √ execute throws if called with an unknown name
+    √ execute throws if called with invalid command info
+    √ undo calls a command's undo function with original params, return val [and cache val]
+    √ undo calls batch commands' undo functions with original params, return val [and cache val]
+    √ undo returns pending undo if user undoes while another undo is processing
+    √ undo, once done, processes undos on queue
+    √ undo does not enqueue an undo if there are insufficient commands left
+    √ undo returns if command stack empty
+    √ error in undo function *will not* stop processing other undos in batch
+    √ error in undo function *will* stop processing pending undos
+    √ error in undo function resets undo state
+
+  Undojs.js system tests - error handling
+    √ Error in execute function is propagated
+    √ Error in sync cache function with sync exec function is propagated
+    √ Error in sync cache function with async exec function is propagated
+    √ Error in async cache function with sync exec function is propagated
+    √ Error in async cache function with async exec function is propagated
+    √ Error in batched excute function is propagated
+    √ Error in single undo function is propagated
+    √ Error in pending undo function is propagated
+    √ Error in undo function of batch is propagated
+    √ Evaluate results of a batch with rejected commands
+
+  Undojs.js system tests - general
+    √ Forcing next commands to wait for command batch requires awaiting command batch
+    √ Series of [batch] commands are exatcly reversible
+    √ Evaluation of individual results requires awaiting each result
+    √ Non-awaited sync commands with mixed presence of cache functions are executed in order
+    √ Async delays in execute and cache functions determine order of command stack 
+    √ Non-awaited async commands are not called in order of execution but in order of returning/resolving
+    √ Awaited async commands are called in order of execution
+    √ A pending command cannot be undone 
+    √ It is possible but unwise that an undo function calls undo
+    √ It is possible but unwise to execute another command from within a command
+    √ It is possible for a command to execute itself - and break the script with inf recur :(
+
+
+  58 passing 
+

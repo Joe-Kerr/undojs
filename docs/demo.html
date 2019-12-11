@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>		
+	<meta charset="UTF-8" />
+	
+	<meta http-equiv="cache-control" content="no-cache" />
+	<meta http-equiv="expires" content="0">
+	<meta http-equiv="pragma" content="no-cache">			
+	
+	<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'" />
+			
+	<script src="./undojs.browser.js"></script>
+	
+	<style>
+		section > div {
+			display: inline-block;
+			vertical-align: top;
+		}
+		
+		div > span {
+			width: 40px;
+			display: inline-block;
+		}
+		
+		#model {
+			width: 300px;
+			height: 300px;
+			border: 1px solid black;
+		}
+		
+		#params {}
+	</style>
+</head>
+<body>
+
+<button id="undo">undo</button>
+<section>
+	<div id="model">
+
+	</div>
+
+	<div id="params">
+		<div> <span>red</span> <input type="range" min="0" max="255" value="255" class="slider" id="r"> </div>
+		<div> <span>green</span> <input type="range" min="0" max="255" value="255" class="slider" id="g"> </div>
+		<div> <span>blue</span> <input type="range" min="0" max="255" value="255" class="slider" id="b"> </div>
+		<button id="reset">reset</button>
+	</div>
+
+</section>
+
+<script>
+(function() {
+const undoController = new window.undojs.Undojs();
+
+const color = {
+	r: 255,
+	g: 255,
+	b: 255
+};
+
+function render() {
+	document.getElementById("model").style.backgroundColor = `rgb(${color.r}, ${color.g}, ${color.b})`;
+	document.getElementById("r").value = color.r;
+	document.getElementById("g").value = color.g;
+	document.getElementById("b").value = color.b;
+}
+
+function updateColor(id, targetVal) {	
+	const val = parseInt(targetVal);
+	const channel = id;
+	
+	color[id] = val;		
+	render();
+}
+
+undoController.register({
+	name: "updateColor",
+	execute: updateColor,
+	undo(params, returned, cached) {
+		for(const p in cached) {
+			color[p] = cached[p];
+		}
+		render();
+	},
+	cache() {
+		return JSON.parse(JSON.stringify(color));
+	}
+});
+
+document.getElementById("params").addEventListener("change", (event)=>{
+	undoController.execute("updateColor", [event.target.id, event.target.value]);
+});
+
+document.getElementById("undo").addEventListener("click", (event)=>{
+	undoController.undo();
+});
+
+document.getElementById("reset").addEventListener("click", (event)=>{
+	undoController.recordBatch([
+		{name: "updateColor", params: ["r", 255]},
+		{name: "updateColor", params: ["g", 255]},
+		{name: "updateColor", params: ["b", 255]}
+	]);
+});
+
+
+})();
+</script>
+
+</body>
+</html>

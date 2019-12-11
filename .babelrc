@@ -1,0 +1,10 @@
+{
+  "presets": [["env"]],
+  "babelrc": false,
+
+  "plugins": ["transform-object-rest-spread"],
+  
+  "ignore": [
+    "suite/**"
+  ]
+}

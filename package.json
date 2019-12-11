@@ -1,0 +1,25 @@
+{
+  "name": "@joe_kerr/undojs",
+  "version": "0.1.0",
+  "description": "Everything should be undoable!",
+  "main": "./src/index.js",
+  "module": "./src/index.js",
+  "author": "joe_kerr / Joe-Kerr",
+  "license": "MIT",
+  "repository": "github:Joe-Kerr/undojs",
+  "devDependencies": {
+    "babel-plugin-transform-object-rest-spread": "^6.26.0",
+    "babel-polyfill": "^6.26.0",
+    "babel-preset-env": "^1.7.0",
+    "babel-register": "^6.26.0",
+    "jsdom": "^15.1.1",
+    "mocha": "^6.1.4",
+    "sinon": "^7.3.2",
+    "webpack": "^4.36.1",
+    "webpack-cli": "^3.3.6"
+  },
+  "scripts": {
+    "dev:test:unit": "node ./node_modules/mocha/bin/mocha --require babel-polyfill --require babel-register --ui qunit --recursive ./tests/unit/**/*.js",
+    "dev:build": "npx webpack --env undojs"
+  }
+}
