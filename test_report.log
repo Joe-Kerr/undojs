@@ -14,20 +14,26 @@
     √ register adds command to list
     √ register adds command name to list
     √ register defaults to null for context and cache
-    √ register throws if mandatory parameters not provided.
+    √ register throws if mandatory parameters not provided
     √ register throws if execute, undo or cache not of type function
-    √ register throws if duplicate name for command.
+    √ register throws if duplicate name for command
     √ recordBatch creates new empty batch
-    √ recordBatch returns return values of parameter
+    √ recordBatch calls execute with batch idx, name and param of its parameter
+    √ recordBatch passes through return vals of execute calls
     √ recordBatch throws if parameter not an array
+    √ recordBatch throws if parameter is empty array
+    √ recordBatch throws if elements of paramter not objects
+    √ recordBatch throws if any of the parameter functions does not have name property
     √ execute calls the command by name with provided params-array
     √ execute allows to pass a single, non-array parameter w/o wrapping it in an array
     √ execute calls the command with an array as the parameter correctly
-    √ execute stores the call's parameter/s, return val [and cache value].
+    √ execute stores the call's parameter/s, return val [and cache value]
     √ execute calls the command's cache function with the call's parameter/s
     √ execute calls cache function before execute function
     √ execute uses the context provided during register
     √ execute uses/prioritises the context provided as parameter
+    √ execute temporarily stores a pending cache promise
+    √ execute bails before execute function if aborting is true
     √ execute throws if called from within undo
     √ execute throws if called with an unknown name
     √ execute throws if called with invalid command info
@@ -36,10 +42,22 @@
     √ undo returns pending undo if user undoes while another undo is processing
     √ undo, once done, processes undos on queue
     √ undo does not enqueue an undo if there are insufficient commands left
+    √ undo signals when it is done processing
     √ undo returns if command stack empty
     √ error in undo function *will not* stop processing other undos in batch
     √ error in undo function *will* stop processing pending undos
     √ error in undo function resets undo state
+    √ reset sets aborting state
+    √ reset clears execution state
+    √ reset empties execution data array
+    √ reset preserves references when emptying command stack
+    √ reset awaits pending cache calls
+    √ reset awaits currently running undo
+    √ error in reset within a processing cache function resets resetting state
+    √ error in reset within a processing undo function resets resetting state
+    √ error in reset within a cache function does not prevent awaiting a processing undo function
+    √ destroy calls reset
+    √ destroy empties command defintions
 
   Undojs.js system tests - error handling
     √ Error in execute function is propagated
@@ -52,6 +70,10 @@
     √ Error in pending undo function is propagated
     √ Error in undo function of batch is propagated
     √ Evaluate results of a batch with rejected commands
+    √ Error in reset within a cache function is NOT propagated
+    √ Error in reset within a undo function is NOT propagated
+    √ Error in cache function while resetting does not leak into new state
+    √ Error in undo function while resetting does not leak into new state
 
   Undojs.js system tests - general
     √ Forcing next commands to wait for command batch requires awaiting command batch
@@ -65,7 +87,8 @@
     √ It is possible but unwise that an undo function calls undo
     √ It is possible but unwise to execute another command from within a command
     √ It is possible for a command to execute itself - and break the script with inf recur :(
+    √ Pending commands do not leak into new state after reset 
 
 
-  58 passing 
+  81 passing 
 

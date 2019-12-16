@@ -215,6 +215,27 @@ test("execute uses/prioritises the context provided as parameter", async ()=>{
 	assert.equal(expectedContextCache, "call");
 });
 
+test("execute temporarily stores a pending cache promise", async ()=>{
+	sample.commandNames["testCommand"] = 0;
+	sample.commands = [{execute: f, undo: f, cache: af}];
+
+	const res = sample.execute("testCommand");	
+	assert.ok("then" in sample.processingCacheState[1]);
+	
+	await res;
+	assert.equal(Object.keys(sample.processingCacheState).length, 0);
+});
+
+test("execute bails before execute function if aborting is true", async ()=>{
+	const execute = new sinon.fake();
+	sample.commandNames["testCommand"] = 0;
+	sample.commands = [{execute, undo: f, cache: af}];
+	
+	sample.aborting = true;
+	await sample.execute("testCommand");
+	assert.equal(execute.callCount, 0);
+});
+
 test("execute throws if called from within undo", async ()=>{
 	sample.undoing = true;
 	await assert.rejects(async ()=>{ await sample.execute("null"); }, {message: /from within undo process/});
@@ -303,6 +324,23 @@ test("undo does not enqueue an undo if there are insufficient commands left", as
 	assert.equal(sample._asyncProcessPendingUndos.callCount, 1);
 });
 
+test("undo signals when it is done processing", ()=>{
+	return new Promise(async (done)=>{		
+		sample.commands = [{undo: af}];
+		sample.commandStack = [{index: 0}];	
+		
+		assert.equal(sample.processingUndoState, null);
+		
+		const undoState = sample.undo();
+		
+		assert.ok("then" in sample.processingUndoState);
+		assert.notEqual(sample.processingUndoState, true);
+		
+		sample.processingUndoState.then((res)=>{ assert.ok(res); done(); });
+		await undoState;				
+	});
+});
+
 test("undo returns if command stack empty", async ()=>{
 	assert.equal(await sample.undo(), undefined);
 });
@@ -367,4 +405,119 @@ test("error in undo function resets undo state", async ()=>{
 		//noop
 	}
 	assert.equal(sample.undoing, false);	
+});
+
+test("reset sets aborting state", async ()=>{
+	const res = sample.reset();
+	assert.equal(sample.aborting, true);
+	
+	await res;
+	assert.equal(sample.aborting, false);
+});
+
+test("reset clears execution state", async ()=>{
+	sample.pendingUndos = 123;
+	sample.undoing = true;
+	
+	await sample.reset();
+	assert.strictEqual(sample.pendingUndos, 0);
+	assert.strictEqual(sample.undoing, false);
+});
+
+test("reset empties execution data array", async ()=>{
+	sample.commandStack = [{returned: ()=>{}}];
+	sample.batch = [1];
+	sample.undoQueue = [2];
+	
+	await sample.reset();	
+	assert.equal(sample.commandStack.length, 0);
+	assert.equal(sample.batch.length, 0);
+	assert.equal(sample.undoQueue.length, 0);
+});
+
+test("reset preserves references when emptying command stack", async ()=>{
+	const ref_commandStack = sample.commandStack;
+	
+	await sample.reset();	
+	assert.equal(ref_commandStack, sample.commandStack);
+});
+
+test("reset awaits pending cache calls", async ()=>{
+	let isAwaited = false;
+	const promise = async ()=>{await delay(10); isAwaited=true;};
+	sample.processingCacheState[1] = promise();
+	
+	const res = sample.reset();
+	assert.equal(isAwaited, false);
+	
+	await res;
+	assert.equal(isAwaited, true);
+});
+
+test("reset awaits currently running undo", async ()=>{
+	let isAwaited = false;
+	const promise = async ()=>{await delay(10); isAwaited=true;};
+	sample.processingUndoState = promise();
+	
+	const res = sample.reset();
+	assert.equal(isAwaited, false);
+	
+	await res;
+	assert.equal(isAwaited, true);
+});
+
+//error in reset within a pending command function resets resetting state
+[
+	{functionName: "cache"}, 
+	{functionName: "undo"}
+].forEach(async (testObject)=>{
+	const fn = testObject.functionName;
+	
+	await test("error in reset within a processing "+fn+" function resets resetting state", async ()=>{		
+		if(fn === "cache") {
+			sample.processingCacheState[1] = Promise.reject();
+		}
+		else {
+			sample.processingUndoState = Promise.reject();
+		}
+			
+		await sample.reset();
+
+		assert.equal(sample.aborting, false);
+		assert.equal(Object.keys(sample.processingCacheState).length, 0);
+		assert.equal(sample.processingUndoState, null);
+		return;
+
+	});
+	
+});
+
+test("error in reset within a cache function does not prevent awaiting a processing undo function", async ()=>{
+	let isAwaited = false;
+	const promise = async ()=>{await delay(10); isAwaited=true;};
+	sample.processingUndoState = promise();
+	sample.processingCacheState[1] = Promise.reject();
+	
+	const res = sample.reset();
+	assert.equal(isAwaited, false);
+	
+	await res;
+	assert.equal(isAwaited, true);	
+});
+
+test("destroy calls reset", async ()=>{
+	sample.reset = new sinon.fake();
+	
+	await sample.destroy();
+	assert.equal(sample.reset.callCount, 1);
+});
+
+test("destroy empties command defintions", async ()=>{
+	sample.reset = ()=>{};
+	sample.commandNames = {a: 1};
+	sample.commands = [1];
+	
+	await sample.destroy();
+	assert.equal(Object.keys(sample.commandNames).length, 0);
+	assert.equal(sample.commands.length, 0);
 });

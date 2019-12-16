@@ -292,3 +292,39 @@ test("It is possible for a command to execute itself - and break the script with
 	//await assert.rejects(async ()=>{ await controller.execute("recursiveCommand"); }, {message: /infinite recursion/});
 	//await assert.rejects(async ()=>{ await controller.execute("chainA"); }, {message: /infinite recursion/});
 });
+
+
+test("Pending commands do not leak into new state after reset", async ()=>{
+	const controller = new Sample();
+	
+	const testCommand = {
+		name: "testCommand",
+		async execute() {await delay(30); val+=2; return 1},
+		undo: noop,
+		async cache() {await delay(30); return 2;}
+	};		
+	
+	const testCommandWOCache = {
+		name: "testCommandWOCache",
+		async execute() {await delay(30); val+=2; return 1},
+		undo: noop
+	};		
+	
+	controller.register(testCommand);
+	controller.register(testCommandWOCache);
+	
+	controller.execute("testCommand");
+	controller.execute("testCommandWOCache");
+	controller.execute("testCommand");
+
+	const shouldNotChange = val;
+	
+	controller.reset();	
+	
+	await delay(1);
+	assert.equal(val, shouldNotChange, "Evaluate before commands finish");
+	
+	await delay(200);
+	assert.equal(val, shouldNotChange, "Evaluate after commands finish");
+	
+});

@@ -209,3 +209,59 @@ test("Evaluate results of a batch with rejected commands", async ()=>{
 	assert.equal(res[1].name, "ReferenceError");
 	assert.equal(res[2], undefined);
 });
+
+
+// Error in reset within a command function is NOT propagated
+[
+	{functionName: "cache", undo: noop, cache: async ()=>{ doFail(); }},
+	{functionName: "undo", undo: async ()=>{ doFail(); }, cache: noop}
+].forEach(async (testObject)=>{
+		
+	await test("Error in reset within a "+testObject.functionName+" function is NOT propagated", async ()=>{
+		const controller = new Sample();
+		const fail = {name: "fail", execute: noop, undo: testObject.undo, cache: testObject.cache};
+		
+		controller.register(fail);
+
+		try {
+			controller.execute("fail").catch((e)=>{ assert.equal(e.message, "doFail is not defined"); return e;});	//Expected to fail, suppress.
+			await controller.reset();
+		}
+		catch(e) {
+			assert.ok(false, "An unexpected error was thrown: "+e.message);
+		}
+	});	
+	
+});
+
+//"Error in command function while resetting does not leak into new state"
+[
+	{functionName: "cache", undo: noop, cache: async ()=>{await delay(30); doFail(); }},
+	{functionName: "undo", undo: async ()=>{await delay(30); doFail(); }, cache: noop}
+].forEach(async (testObject)=>{
+	
+	await test("Error in "+testObject.functionName+" function while resetting does not leak into new state", async ()=>{
+		const execute = new sinon.fake();
+		const controller = new Sample();
+		const fail = {name: "fail", execute, undo: testObject.undo, cache: testObject.cache};
+		const work = {name: "work", execute, undo: noop};
+		
+		controller.register(fail);
+		controller.register(work);
+
+		try {
+			await Promise.all([
+				controller.execute("work"),
+				controller.execute("fail"),
+				controller.execute("work"),
+				controller.reset()
+			]);
+		}
+		catch(e) {
+			//noop
+		}
+		
+		assert.equal(execute.callCount, 0);
+	});	
+	
+});
