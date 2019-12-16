@@ -177,7 +177,7 @@ Undojs.prototype.execute = async function execute(commandInfo, _params) {
 	
 	//It would be more efficient to null cache. But then the function has a conditional await. Makes it too messy.
 	const enforceSameOrderOfExecution = async ()=>{};	
-	const cached = (command.cache !== null) ? command.cache.call(finalContext, params) : enforceSameOrderOfExecution;
+	const cached = (command.cache !== null) ? command.cache.call(finalContext, params) : enforceSameOrderOfExecution();
 	this.processingCacheState[id] = cached;
 	await cached;
 	delete this.processingCacheState[id];
