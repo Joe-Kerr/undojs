@@ -62,7 +62,6 @@ Undojs.prototype.register = function register(command) {
 	
 	const idx = this.commands.push({"execute": command.execute, "context": context, "undo": command.undo, "cache": cache}) - 1;
 	this.commandNames[command.name] = idx;
-	//this.commands[command.name] = {"execute": command.execute, "context": context, "undo": command.undo, "cache": cache};
 }
 
 /// Execute a set of commands that should be undone as a set. Say, a user moves a bunch of elements. If this was handled by looping a move-command, an undo call would just undo the move of the last element. The function will not execute commands in sequence (Promise.all).
@@ -177,10 +176,8 @@ Undojs.prototype.execute = async function execute(commandInfo, _params) {
 	const finalContext = (context !== null) ? context : command.context;
 	
 	//It would be more efficient to null cache. But then the function has a conditional await. Makes it too messy.
-	const enforceSameOrderOfExecution = async ()=>{};
-	
+	const enforceSameOrderOfExecution = async ()=>{};	
 	const cached = (command.cache !== null) ? command.cache.call(finalContext, params) : enforceSameOrderOfExecution;
-	
 	this.processingCacheState[id] = cached;
 	await cached;
 	delete this.processingCacheState[id];
@@ -189,14 +186,13 @@ Undojs.prototype.execute = async function execute(commandInfo, _params) {
 		return;
 	}
 	
-	const returned = command.execute.apply(finalContext, params);
-	const isAsync = (returned !== undefined && returned.then !== undefined);
+	const returnPromise = command.execute.apply(finalContext, params);
+	const isAsync = (returnPromise !== undefined && returnPromise.then !== undefined);
 	const isBatch = (typeof commandInfo.batch === "number");
 
 	if(isAsync === true) {
-//console.log(commandInfo, "is async")
-		returned.then((_returned)=>{
-			this.commandStack.push({id, index: commandIndex, params, returned: _returned, cached});
+		returnPromise.then((returnVal)=>{
+			this.commandStack.push({id, index: commandIndex, params, returned: returnVal, cached});
 			
 			if(isBatch) {				
 				this._writeBatchInfoOfAsync(id, commandInfo.batch);
@@ -205,27 +201,14 @@ Undojs.prototype.execute = async function execute(commandInfo, _params) {
 	}
 	
 	else {
-//console.log(commandInfo, "is sync");
-		this.commandStack.push({id, index: commandIndex, params, returned, cached});
+		this.commandStack.push({id, index: commandIndex, params, returned: returnPromise, cached});
 		
 		if(isBatch) {
 			this._writeBatchInfoOfSync(id, commandInfo.batch);
 		}	
 	}
 
-	return returned;
-	//
-	/*
-	const returned = command.execute.apply(finalContext, params);
-	
-	if(this.stackLimit > 0 && this.commandStack.length >= this.stackLimit) {
-		this.commandStack.shift();
-	}
-		
-	this.commandStack.push({id, index: commandIndex, params, returned, cached});
-
-	return returned;
-	*/
+	return returnPromise;
 }
 
 Undojs.prototype._enqueuedPendingUndo = async function _enqueuedPendingUndo(undoQueue) {
@@ -278,14 +261,12 @@ Undojs.prototype._undoBatchCommand = async function _undoBatchCommand(commandSta
 			if(typeof individualResponse === "object" && typeof individualResponse.catch === "function") {
 				//Notice catch block: requires await below to be effective!
 				individualResponse.catch((e)=>{ 
-					//console.log("3a", "caught async error", e.constructor.name); 
 					hasErrors = true;
 					return e;
 				});
 			}			
 		}
 		catch(e) {
-			//console.log("3b", "caught sync error", e.constructor.name);
 			individualResponse = Promise.reject(e);
 			hasErrors = true;
 		}
@@ -313,12 +294,6 @@ Undojs.prototype._checkIsUndoOfBatchCommand = function _checkIsUndoOfBatchComman
 /// @function Undojs#undo
 /// @returns {(var|array)} - Passes through the return value of the command or an array of return values if a batch has been undone.
 Undojs.prototype.undo = async function undo(isUserCall=true) {			
-	//dev only; should never happen
-	if(this.undoQueue.length > this.commandStack.length) {
-		throw new Error("There are more undos pending than on the command stack.");
-	}
-	//
-	
 	if(this.commandStack.length === 0) {
 		return;
 	}
@@ -333,23 +308,20 @@ Undojs.prototype.undo = async function undo(isUserCall=true) {
 	}
 	
 	this.undoing = true;
-	//
+
 	let undoFinishSignal;
 	this.processingUndoState = new Promise((done)=>{ undoFinishSignal = done; });
-	//
+	
 	const isUndoOfBatchCommand = this._checkIsUndoOfBatchCommand(this.batch, this.commandStack);
-	
-//console.log(isUndoOfBatchCommand ? 2 : 1);
-	
 	const undoMode = (isUndoOfBatchCommand === false) ? "_undoSingleCommand" : "_undoBatchCommand";
 	const res = await this[undoMode](this.commandStack, this.commands, this.batch);
 	let {response, hasErrors} = res;
 	
-//console.log(4, hasErrors);	
 	if(hasErrors) {
 		response = Promise.reject(response);
 		this.undoQueue = [];	
 	}
+	
 	undoFinishSignal(true);
 	this.processingUndoState = null;
 	this.undoing = false;
