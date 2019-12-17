@@ -125,6 +125,10 @@ However, there is a trade-off. You must cache before you change state. So the ca
 
 # Versions
 
+## 0.2.0
+- Add: Reset and destroy for app restart / clean up
+- Chg: Minor cleanups, fixes, changes
+
 ## 0.1.0
 - Public beta release.
 
