@@ -10,13 +10,15 @@
     √ undo calls undo functions in order of commands' order of return - not order of commands' call
     √ undo calls async undo functions sequentially 
 
-  Undojs.js
+  Undojs.js - register
     √ register adds command to list
     √ register adds command name to list
     √ register defaults to null for context and cache
     √ register throws if mandatory parameters not provided
     √ register throws if execute, undo or cache not of type function
     √ register throws if duplicate name for command
+
+  Undojs.js - recordBatch
     √ recordBatch creates new empty batch
     √ recordBatch calls execute with batch idx, name and param of its parameter
     √ recordBatch passes through return vals of execute calls
@@ -24,6 +26,8 @@
     √ recordBatch throws if parameter is empty array
     √ recordBatch throws if elements of paramter not objects
     √ recordBatch throws if any of the parameter functions does not have name property
+
+  Undojs.js - execute
     √ execute calls the command by name with provided params-array
     √ execute allows to pass a single, non-array parameter w/o wrapping it in an array
     √ execute calls the command with an array as the parameter correctly
@@ -37,6 +41,8 @@
     √ execute throws if called from within undo
     √ execute throws if called with an unknown name
     √ execute throws if called with invalid command info
+
+  Undojs.js - undo
     √ undo calls a command's undo function with original params, return val [and cache val]
     √ undo calls batch commands' undo functions with original params, return val [and cache val]
     √ undo returns pending undo if user undoes while another undo is processing
@@ -44,18 +50,22 @@
     √ undo does not enqueue an undo if there are insufficient commands left
     √ undo signals when it is done processing
     √ undo returns if command stack empty
-    √ error in undo function *will not* stop processing other undos in batch
-    √ error in undo function *will* stop processing pending undos
-    √ error in undo function resets undo state
+    √ Error in undo function *will not* stop processing other undos in batch
+    √ Error in undo function *will* stop processing pending undos
+    √ Error in undo function resets undo state
+
+  Undojs.js - reset
     √ reset sets aborting state
     √ reset clears execution state
     √ reset empties execution data array
     √ reset preserves references when emptying command stack
     √ reset awaits pending cache calls
     √ reset awaits currently running undo
-    √ error in reset within a processing cache function resets resetting state
-    √ error in reset within a processing undo function resets resetting state
-    √ error in reset within a cache function does not prevent awaiting a processing undo function
+    √ Error in reset within a processing cache function resets resetting state
+    √ Error in reset within a processing undo function resets resetting state
+    √ Error in reset within a cache function does not prevent awaiting a processing undo function
+
+  Undojs.js - destroy
     √ destroy calls reset
     √ destroy empties command defintions
 

@@ -2,8 +2,6 @@ const assert = require("assert");
 const sinon = require("sinon");
 const Sample = require("../../src/Undojs.js").default;
 
-suite("Undojs.js");
-
 let sample;
 const f = ()=>{};
 const af = async ()=>{};
@@ -13,6 +11,8 @@ function delay(ms) {
 		setTimeout(()=>{resolve(null);}, ms);
 	});
 }
+
+suite("Undojs.js - register");
 
 beforeEach(()=>{
 	sample = new Sample();
@@ -60,6 +60,12 @@ test("register throws if duplicate name for command", ()=>{
 	assert.throws(()=>{ sample.register({name: "testCommand", execute: f, context: f, undo: f, cache: f}); }, {message: /existing command/});
 });
 
+
+suite("Undojs.js - recordBatch");
+
+beforeEach(()=>{
+	sample = new Sample();
+});
 
 test("recordBatch creates new empty batch", ()=>{
 	sample.execute = ()=>{};
@@ -120,6 +126,12 @@ test("recordBatch throws if any of the parameter functions does not have name pr
 	assert.throws(()=>{ sample.recordBatch([{anythingButName: null}]); }, {message: /must have property name/});
 });
 
+
+suite("Undojs.js - execute");
+
+beforeEach(()=>{
+	sample = new Sample();
+});
 
 test("execute calls the command by name with provided params-array", async ()=>{
 	const execute = new sinon.fake();
@@ -254,6 +266,12 @@ test("execute throws if called with invalid command info", async ()=>{
 });
 
 
+suite("Undojs.js - undo");
+
+beforeEach(()=>{
+	sample = new Sample();
+});
+
 test("undo calls a command's undo function with original params, return val [and cache val]", async ()=>{
 	const undo = new sinon.fake();
 	sample.commands = [{undo}];
@@ -345,7 +363,7 @@ test("undo returns if command stack empty", async ()=>{
 	assert.equal(await sample.undo(), undefined);
 });
 
-test("error in undo function *will not* stop processing other undos in batch", async ()=>{
+test("Error in undo function *will not* stop processing other undos in batch", async ()=>{
 	const undo = new sinon.fake();
 	let failingUndo = async ()=>{failingUndo.callCount++; bollocks();};
 	failingUndo.callCount = 0;
@@ -368,7 +386,7 @@ test("error in undo function *will not* stop processing other undos in batch", a
 
 });
 
-test("error in undo function *will* stop processing pending undos", async ()=>{
+test("Error in undo function *will* stop processing pending undos", async ()=>{
 	const undo = new sinon.fake();
 	let failingUndo = async ()=>{failingUndo.callCount++; bollocks();};
 	failingUndo.callCount = 0;
@@ -392,7 +410,7 @@ test("error in undo function *will* stop processing pending undos", async ()=>{
 	assert.equal(failingUndo.callCount, 1);	
 });
 
-test("error in undo function resets undo state", async ()=>{
+test("Error in undo function resets undo state", async ()=>{
 	const undo = ()=>{bollocks();}
 	sample.commands = [{undo}];
 	sample.commandStack = [{index: 0}];	
@@ -405,6 +423,13 @@ test("error in undo function resets undo state", async ()=>{
 		//noop
 	}
 	assert.equal(sample.undoing, false);	
+});
+
+
+suite("Undojs.js - reset");
+
+beforeEach(()=>{
+	sample = new Sample();
 });
 
 test("reset sets aborting state", async ()=>{
@@ -473,7 +498,7 @@ test("reset awaits currently running undo", async ()=>{
 ].forEach(async (testObject)=>{
 	const fn = testObject.functionName;
 	
-	await test("error in reset within a processing "+fn+" function resets resetting state", async ()=>{		
+	await test("Error in reset within a processing "+fn+" function resets resetting state", async ()=>{		
 		if(fn === "cache") {
 			sample.processingCacheState[1] = Promise.reject();
 		}
@@ -492,7 +517,7 @@ test("reset awaits currently running undo", async ()=>{
 	
 });
 
-test("error in reset within a cache function does not prevent awaiting a processing undo function", async ()=>{
+test("Error in reset within a cache function does not prevent awaiting a processing undo function", async ()=>{
 	let isAwaited = false;
 	const promise = async ()=>{await delay(10); isAwaited=true;};
 	sample.processingUndoState = promise();
@@ -503,6 +528,13 @@ test("error in reset within a cache function does not prevent awaiting a process
 	
 	await res;
 	assert.equal(isAwaited, true);	
+});
+
+
+suite("Undojs.js - destroy");
+
+beforeEach(()=>{
+	sample = new Sample();
 });
 
 test("destroy calls reset", async ()=>{
